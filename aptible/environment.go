@@ -54,6 +54,36 @@ func (c *Client) CreateEnvironment(organizationID string, stackID int64, attrs E
 	}, nil
 }
 
+func (c *Client) GetEnvironments() ([]Environment, error) {
+	var environments []Environment
+	params := operations.NewGetAccountsParams()
+	environmentsData, err := c.Client.Operations.GetAccounts(params, c.Token)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, env := range environmentsData.GetPayload().Embedded.Accounts {
+		stackID, err := GetIDFromHref(env.Links.Stack.Href.String())
+		if err != nil {
+			return nil, err
+		}
+		organizationSplitLink := strings.Split(env.Links.Organization.Href.String(), "/")
+		if len(organizationSplitLink) == 0 {
+			err := fmt.Errorf("there was an error when completing the request to get the organization id from the environment, href invalid - %s", env.Links.Organization.Href.String())
+			return nil, err
+		}
+		organizationID := organizationSplitLink[len(organizationSplitLink)-1]
+		environments = append(environments, Environment{
+			Handle:         env.Handle,
+			ID:             env.ID,
+			StackID:        stackID,
+			OrganizationID: organizationID,
+		})
+	}
+
+	return environments, nil
+}
+
 func (c *Client) GetEnvironment(environmentID int64) (Environment, error) {
 	environment := Environment{
 		Deleted: false,
