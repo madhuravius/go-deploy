@@ -25,7 +25,8 @@ type Database struct {
 }
 
 // DBUpdates - struct to define what operations you contain your DB update to. Add values to this struct
-// 			   to eventually pass it around for consumption by the go sdk
+//
+//	to eventually pass it around for consumption by the go sdk
 type DBUpdates struct {
 	ContainerSize    int64
 	DiskSize         int64
@@ -112,6 +113,25 @@ func (c *Client) CreateDatabase(accountID int64, attrs DBCreateAttrs) (Database,
 
 	// gets database
 	return c.GetDatabase(databaseID)
+}
+
+func (c *Client) GetDatabases(accountID int64) ([]Database, error) {
+	params := operations.NewGetAccountsAccountIDDatabasesParams().WithAccountID(accountID)
+	result, err := c.Client.Operations.GetAccountsAccountIDDatabases(params, c.Token)
+	if err != nil {
+		return nil, err
+	}
+	var dbs []Database
+	for _, db := range result.GetPayload().Embedded.Databases {
+		dbs = append(dbs, Database{
+			ID:            db.ID,
+			Handle:        db.Handle,
+			Type:          *db.Type,
+			EnvironmentID: accountID,
+		})
+	}
+
+	return dbs, nil
 }
 
 func (c *Client) GetDatabase(databaseID int64) (Database, error) {
