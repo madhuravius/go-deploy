@@ -22,6 +22,25 @@ type AppUpdates struct {
 	Handle string
 }
 
+func (c *Client) GetApps(accountID int64) ([]App, error) {
+	params := operations.NewGetAccountsAccountIDAppsParams().WithAccountID(accountID)
+	result, err := c.Client.Operations.GetAccountsAccountIDApps(params, c.Token)
+	if err != nil {
+		return nil, err
+	}
+	var apps []App
+	for _, app := range result.GetPayload().Embedded.Apps {
+		apps = append(apps, App{
+			ID:            app.ID,
+			EnvironmentID: accountID,
+			GitRepo:       app.GitRepo,
+			Handle:        app.Handle,
+		})
+	}
+
+	return apps, nil
+}
+
 func (c *Client) CreateApp(handle string, accountID int64) (App, error) {
 	app := App{}
 	appRequest := models.AppRequest3{Handle: &handle}
