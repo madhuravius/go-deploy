@@ -139,6 +139,36 @@ func (c *Client) GetMetricDrain(metricDrainID int64) (*MetricDrain, error) {
 	return metricDrain, nil
 }
 
+func (c *Client) GetMetricDrains(accountID int64) ([]MetricDrain, error) {
+	params := operations.NewGetAccountsAccountIDMetricDrainsParams().WithAccountID(accountID)
+	result, err := c.Client.Operations.GetAccountsAccountIDMetricDrains(params, c.Token)
+	if err != nil {
+		return nil, err
+	}
+	var metricDrains []MetricDrain
+	for _, metricDrain := range result.GetPayload().Embedded.MetricDrains {
+		metricDrainToAppend := MetricDrain{
+			Deleted:   false,
+			ID:        metricDrain.ID,
+			Handle:    metricDrain.Handle,
+			DrainType: metricDrain.DrainType,
+			AccountID: accountID,
+		}
+		if metricDrain.DrainConfiguration != nil {
+			metricDrainToAppend.URL = metricDrain.DrainConfiguration.Address
+			metricDrainToAppend.Username = metricDrain.DrainConfiguration.Username
+			metricDrainToAppend.Password = metricDrain.DrainConfiguration.Password
+			metricDrainToAppend.Database = metricDrain.DrainConfiguration.Database
+			metricDrainToAppend.APIKey = metricDrain.DrainConfiguration.APIKey
+			metricDrainToAppend.SeriesURL = metricDrain.DrainConfiguration.SeriesURL
+		}
+		metricDrainToAppend.DatabaseID, _ = GetIDFromHref(metricDrain.Links.Database.Href.String())
+		metricDrains = append(metricDrains, metricDrainToAppend)
+	}
+
+	return metricDrains, nil
+}
+
 func (c *Client) DeleteMetricDrain(metricDrainID int64) (bool, error) {
 	requestType := "deprovision"
 	request := models.AppRequest30{Type: &requestType}
