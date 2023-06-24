@@ -140,6 +140,37 @@ func (c *Client) GetLogDrain(logDrainID int64) (*LogDrain, error) {
 	return logDrain, nil
 }
 
+func (c *Client) GetLogDrains(accountID int64) ([]LogDrain, error) {
+	params := operations.NewGetAccountsAccountIDLogDrainsParams().WithAccountID(accountID)
+	result, err := c.Client.Operations.GetAccountsAccountIDLogDrains(params, c.Token)
+	if err != nil {
+		return nil, err
+	}
+	var logDrains []LogDrain
+	for _, logDrain := range result.GetPayload().Embedded.LogDrains {
+		logDrainToAppend := LogDrain{
+			ID:                     logDrain.ID,
+			Handle:                 logDrain.Handle,
+			DrainType:              logDrain.DrainType,
+			DrainUsername:          swag.StringValue(logDrain.DrainUsername),
+			DrainPassword:          swag.StringValue(logDrain.DrainPassword),
+			DrainApps:              logDrain.DrainApps,
+			DrainDatabases:         logDrain.DrainDatabases,
+			DrainEphemeralSessions: logDrain.DrainEphemeralSessions,
+			DrainProxies:           logDrain.DrainProxies,
+			DrainHost:              logDrain.DrainHost,
+			DrainPort:              logDrain.DrainPort,
+			LoggingToken:           swag.StringValue(logDrain.LoggingToken),
+			URL:                    swag.StringValue(logDrain.URL),
+			AccountID:              accountID,
+		}
+		logDrainToAppend.DatabaseID, _ = GetIDFromHref(logDrain.Links.Database.Href.String())
+		logDrains = append(logDrains, logDrainToAppend)
+	}
+
+	return logDrains, nil
+}
+
 func (c *Client) DeleteLogDrain(logDrainID int64) (bool, error) {
 	requestType := "deprovision"
 	request := models.AppRequest29{Type: &requestType}
