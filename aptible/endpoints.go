@@ -2,6 +2,7 @@ package aptible
 
 import (
 	"fmt"
+	"github.com/go-openapi/swag"
 
 	"github.com/aptible/go-deploy/client/operations"
 	"github.com/aptible/go-deploy/models"
@@ -209,6 +210,57 @@ func (c *Client) GetEndpoint(endpointID int64) (Endpoint, error) {
 	endpoint.Service = service
 
 	return endpoint, nil
+}
+
+func (c *Client) GetEndpoints(accountID int64) ([]Endpoint, error) {
+	params := operations.NewGetAccountsAccountIDVhostsParams().WithAccountID(accountID)
+	result, err := c.Client.Operations.GetAccountsAccountIDVhosts(params, c.Token)
+	if err != nil {
+		return nil, err
+	}
+	var endpoints []Endpoint
+	for _, endpoint := range result.GetPayload().Embedded.Vhosts {
+		endpointToAppend := Endpoint{
+			ID:            endpoint.ID,
+			ExternalHost:  swag.StringValue(endpoint.ExternalHost),
+			ContainerPort: swag.Int64Value(endpoint.ContainerPort),
+			IPWhitelist:   endpoint.IPWhitelist,
+			Platform:      endpoint.Platform,
+			Acme:          endpoint.Acme,
+			Default:       endpoint.Default,
+			UserDomain:    swag.StringValue(endpoint.UserDomain),
+			VirtualDomain: endpoint.VirtualDomain,
+			Type:          endpoint.Type,
+			Internal:      endpoint.Internal,
+		}
+		if endpoint.AcmeConfiguration != nil {
+			var cs []AcmeChallenge
+			for _, challenge := range (*endpoint.AcmeConfiguration).Challenges {
+				if challenge != nil && (*challenge).From != nil && (*challenge).To != nil {
+					c := *challenge
+					for _, to := range c.To {
+						// These are deprecated challenge names so we aren't returning them
+						if to.Legacy {
+							continue
+						}
+						cs = append(cs, AcmeChallenge{Method: c.Method, From: c.From.Name, To: to.Name})
+					}
+				}
+			}
+			if len(cs) > 0 {
+				endpointToAppend.AcmeChallenges = cs
+			}
+		}
+		serviceHref := endpoint.Links.Service.Href.String()
+		service, err := c.GetServiceFromHref(serviceHref)
+		if err != nil {
+			return nil, err
+		}
+		endpointToAppend.Service = service
+		endpoints = append(endpoints, endpointToAppend)
+	}
+
+	return endpoints, nil
 }
 
 // UpdateEndpoint() takes in an endpointID and updates needed, and updates the endpoint.
