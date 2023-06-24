@@ -29,12 +29,15 @@ type Endpoint struct {
 	Type           string
 	Internal       bool
 	AcmeChallenges []AcmeChallenge
+	CreatedAt      string
+	Status         string
 }
 
 type AcmeChallenge struct {
 	Method string
 	From   string
 	To     string
+	Status string
 }
 
 type EndpointCreateAttrs struct {
@@ -232,6 +235,8 @@ func (c *Client) GetEndpoints(accountID int64) ([]Endpoint, error) {
 			VirtualDomain: endpoint.VirtualDomain,
 			Type:          endpoint.Type,
 			Internal:      endpoint.Internal,
+			CreatedAt:     endpoint.CreatedAt,
+			Status:        endpoint.Status,
 		}
 		if endpoint.AcmeConfiguration != nil {
 			var cs []AcmeChallenge
@@ -243,7 +248,12 @@ func (c *Client) GetEndpoints(accountID int64) ([]Endpoint, error) {
 						if to.Legacy {
 							continue
 						}
-						cs = append(cs, AcmeChallenge{Method: c.Method, From: c.From.Name, To: to.Name})
+						cs = append(cs, AcmeChallenge{
+							Method: c.Method,
+							From:   c.From.Name,
+							To:     to.Name,
+							Status: swag.StringValue(endpoint.AcmeStatus),
+						})
 					}
 				}
 			}
