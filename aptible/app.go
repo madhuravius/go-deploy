@@ -2,6 +2,7 @@ package aptible
 
 import (
 	"fmt"
+	"github.com/go-openapi/swag"
 
 	"github.com/aptible/go-deploy/client/operations"
 	"github.com/aptible/go-deploy/models"
@@ -127,12 +128,37 @@ func (c *Client) GetApp(appID int64) (App, error) {
 				ResourceType:           s.ResourceType,
 				ResourceID:             app.ID,
 				EnvironmentID:          app.EnvironmentID,
+				CreatedAt:              s.CreatedAt,
 			}
 			app.Services = append(app.Services, service)
 		}
 	}
 
 	return app, err
+}
+
+func (c *Client) AppOperation(appID int64, opType string) (Operation, error) {
+	app, err := c.GetApp(appID)
+	if err != nil {
+		return Operation{}, err
+	}
+
+	params := operations.NewPostAppsAppIDOperationsParams().WithAppID(appID).WithAppRequest(&models.AppRequest22{
+		Type: swag.String(opType),
+	})
+	response, err := c.Client.Operations.PostAppsAppIDOperations(params, c.Token)
+	if err != nil {
+		return Operation{}, err
+	}
+
+	return Operation{
+		ID:            swag.Int64Value(response.Payload.ID),
+		Type:          swag.StringValue(response.Payload.Type),
+		Handle:        swag.StringValue(response.Payload.Handle),
+		Status:        swag.StringValue(response.Payload.Status),
+		CreatedAt:     swag.StringValue(response.Payload.CreatedAt),
+		EnvironmentID: app.EnvironmentID,
+	}, nil
 }
 
 func (c *Client) DeployApp(config map[string]interface{}, appID int64) error {

@@ -3,6 +3,7 @@ package aptible
 import (
 	"errors"
 	"fmt"
+	"github.com/go-openapi/swag"
 
 	"github.com/aptible/go-deploy/client/operations"
 	"github.com/aptible/go-deploy/models"
@@ -302,4 +303,28 @@ func (c *Client) GetDatabaseOperations(databaseID int64, page int64) (*models.In
 		return nil, err
 	}
 	return resp.Payload, nil
+}
+
+func (c *Client) DatabaseOperation(databaseID int64, opType string) (Operation, error) {
+	app, err := c.GetDatabase(databaseID)
+	if err != nil {
+		return Operation{}, err
+	}
+
+	params := operations.NewPostDatabasesDatabaseIDOperationsParams().WithDatabaseID(databaseID).WithAppRequest(&models.AppRequest24{
+		Type: swag.String(opType),
+	})
+	response, err := c.Client.Operations.PostDatabasesDatabaseIDOperations(params, c.Token)
+	if err != nil {
+		return Operation{}, err
+	}
+
+	return Operation{
+		ID:            swag.Int64Value(response.Payload.ID),
+		Type:          swag.StringValue(response.Payload.Type),
+		Handle:        swag.StringValue(response.Payload.Handle),
+		Status:        swag.StringValue(response.Payload.Status),
+		CreatedAt:     swag.StringValue(response.Payload.CreatedAt),
+		EnvironmentID: app.EnvironmentID,
+	}, nil
 }

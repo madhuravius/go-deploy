@@ -17,6 +17,7 @@ type Service struct {
 	ResourceID             int64
 	EnvironmentID          int64
 	ContainerProfile       string
+	CreatedAt              string
 }
 
 func (c *Client) GetService(serviceID int64) (Service, error) {
@@ -140,6 +141,7 @@ func (c *Client) GetServiceForAppByName(appID int64, serviceName string) (Servic
 				ProcessType:      service.ProcessType,
 				Command:          service.Command,
 				ContainerProfile: service.InstanceClass,
+				CreatedAt:        service.CreatedAt,
 			}
 			if service.ContainerMemoryLimitMb != nil {
 				s.ContainerMemoryLimitMb = *service.ContainerMemoryLimitMb
