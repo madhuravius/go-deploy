@@ -164,7 +164,9 @@ func (c *Client) GetLogDrains(accountID int64) ([]LogDrain, error) {
 			URL:                    swag.StringValue(logDrain.URL),
 			AccountID:              accountID,
 		}
-		logDrainToAppend.DatabaseID, _ = GetIDFromHref(logDrain.Links.Database.Href.String())
+		if logDrain.Links.Database != nil {
+			logDrainToAppend.DatabaseID, _ = GetIDFromHref(logDrain.Links.Database.Href.String())
+		}
 		logDrains = append(logDrains, logDrainToAppend)
 	}
 
