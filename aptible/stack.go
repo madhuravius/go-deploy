@@ -2,6 +2,7 @@ package aptible
 
 import (
 	"fmt"
+	"github.com/go-openapi/swag"
 	"strings"
 
 	"github.com/aptible/go-deploy/client/operations"
@@ -13,6 +14,9 @@ type Stack struct {
 	ID             int64
 	OrganizationID string
 	Name           string
+	HostKey        string
+	PortalHost     string
+	PortalPort     int64
 }
 
 func (s Stack) isShared() bool {
@@ -38,8 +42,11 @@ func (c *Client) GetStacks() ([]Stack, error) {
 
 		for _, stack := range stacks.GetPayload().Embedded.Stacks {
 			stackToAppend := Stack{
-				ID:   stack.ID,
-				Name: stack.Name,
+				ID:         stack.ID,
+				Name:       stack.Name,
+				HostKey:    stack.SSHHostRsaPublicKey,
+				PortalHost: stack.SSHPortalHost,
+				PortalPort: stack.SSHPortalPort,
 			}
 			if stack.Links.Organization != nil &&
 				stack.Links.Organization.Href != "" {
@@ -69,7 +76,10 @@ func (c *Client) GetStack(id int64) (Stack, error) {
 	return Stack{
 		ID:             id,
 		OrganizationID: organizationId,
-		Name:           *result.Payload.Name,
+		Name:           swag.StringValue(result.Payload.Name),
+		HostKey:        swag.StringValue(result.Payload.SSHHostEcdsaPublicKey),
+		PortalHost:     swag.StringValue(result.Payload.SSHPortalHost),
+		PortalPort:     swag.Int64Value(result.Payload.SSHPortalPort),
 	}, nil
 }
 

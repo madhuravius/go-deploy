@@ -17,11 +17,75 @@ type Operation struct {
 	StackID       int64
 	Certificate   string
 	SSHUser       string
+	SSHPort       int64
 	SSHPty        bool
 	CreatedAt     string
 }
 
-func (c *Client) CreateSSHPortalConnectionOperation(environmentID int64, publicKey string) (Operation, error) {
+func (c *Client) CreateAppLogsOperation(appID int64) (Operation, error) {
+	app, err := c.GetApp(appID)
+	if err != nil {
+		return Operation{}, err
+	}
+
+	environment, err := c.GetEnvironment(app.EnvironmentID)
+	if err != nil {
+		return Operation{}, err
+	}
+
+	params := operations.NewPostAppsAppIDOperationsParams().WithAppID(appID).WithAppRequest(&models.AppRequest22{
+		Type: swag.String("logs"),
+	})
+	result, err := c.Client.Operations.PostAppsAppIDOperations(params, c.Token)
+	if err != nil {
+		return Operation{}, err
+	}
+
+	payload := result.GetPayload()
+	return Operation{
+		ID:            swag.Int64Value(payload.ID),
+		Type:          swag.StringValue(payload.Type),
+		Handle:        swag.StringValue(payload.Handle),
+		Status:        swag.StringValue(payload.Status),
+		EnvironmentID: app.EnvironmentID,
+		StackID:       environment.StackID,
+		Certificate:   "",
+		CreatedAt:     swag.StringValue(payload.CreatedAt),
+	}, nil
+}
+
+func (c *Client) CreateDatabaseLogsOperation(databaseID int64) (Operation, error) {
+	db, err := c.GetDatabase(databaseID)
+	if err != nil {
+		return Operation{}, err
+	}
+
+	environment, err := c.GetEnvironment(db.EnvironmentID)
+	if err != nil {
+		return Operation{}, err
+	}
+	params := operations.NewPostDatabasesDatabaseIDOperationsParams().WithDatabaseID(databaseID).WithAppRequest(&models.AppRequest24{
+		Type: swag.String("logs"),
+	})
+	result, err := c.Client.Operations.PostDatabasesDatabaseIDOperations(params, c.Token)
+	if err != nil {
+		return Operation{}, err
+	}
+
+	payload := result.GetPayload()
+	return Operation{
+		ID:            swag.Int64Value(payload.ID),
+		Type:          swag.StringValue(payload.Type),
+		Handle:        swag.StringValue(payload.Handle),
+		Status:        swag.StringValue(payload.Status),
+		EnvironmentID: db.EnvironmentID,
+		StackID:       environment.StackID,
+		Certificate:   "",
+		CreatedAt:     swag.StringValue(payload.CreatedAt),
+	}, nil
+}
+
+func (c *Client) CreateSSHPortalConnectionOperation(environmentID, operationId int64, publicKey string) (Operation, error) {
 	environment, err := c.GetEnvironment(environmentID)
 	if err != nil {
 		return Operation{}, err
@@ -29,7 +93,7 @@ func (c *Client) CreateSSHPortalConnectionOperation(environmentID int64, publicK
 
 	params := operations.NewPostOperationsOperationIDSSHPortalConnectionsParams().WithAppRequest(&models.AppRequest33{
 		SSHPublicKey: &publicKey,
-	})
+	}).WithOperationID(operationId)
 	result, err := c.Client.Operations.PostOperationsOperationIDSSHPortalConnections(params, c.Token)
 	if err != nil {
 		return Operation{}, err
@@ -47,6 +111,7 @@ func (c *Client) CreateSSHPortalConnectionOperation(environmentID int64, publicK
 		CreatedAt:   swag.StringValue(payload.CreatedAt),
 		Certificate: swag.StringValue(payload.SSHCertificateBody),
 		SSHUser:     swag.StringValue(payload.SSHUser),
+		SSHPort:     swag.Int64Value(payload.SSHPortForwardSocket),
 		SSHPty:      swag.BoolValue(payload.SSHPty),
 	}, nil
 }
